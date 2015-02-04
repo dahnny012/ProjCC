@@ -2,7 +2,7 @@ import urllib2
 import urllib
 from multiprocessing import Pool
 from HTMLParser import HTMLParser
-
+import re
 ##
 ##pool = Pool(10)
 ##p.map(getChapters,[[0,100],[0,200]])
@@ -17,7 +17,7 @@ from HTMLParser import HTMLParser
 
 class MyHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
-	print(attrs)
+		print(attrs.index(1))
 			
         
  
@@ -30,8 +30,14 @@ def searchManga(manga):
 	req = urllib2.Request(url, data)
 	response = urllib2.urlopen(req)
 	the_page = response.read()
-	soup = parser.feed(the_page)
-	return soup
+	parse = re.search("https://www.mangaupdates.com/series\.html\?id=[0-9]+",the_page);
+	if(parse != None):
+		print(parse.group(0))
+	# Navigate to parse
+		url = parse.group(0)
+		req = urllib2.Request(url)
+		response = urllib2.urlopen(req)
+		print(response)
 	
 def parseResults(soup):
 	results = soup.find_all('a');
@@ -41,5 +47,5 @@ def parseResults(soup):
 	return 1
 	
 		
-results = searchManga("Ao haru ride")
+results = searchManga("sdfsdfsdfd")
 #parseResults(results)
