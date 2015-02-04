@@ -17,35 +17,44 @@ import re
 
 class MyHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
-		print(attrs.index(1))
+		if(tag == "td"):
+			for attr in attrs:
+				if(attr[1] == "text pad"):
+					print(attr)
 			
         
  
 parser = MyHTMLParser()
 
 def searchManga(manga):
-	url = 'https://www.mangaupdates.com/search.html'
-	values = {'search' : manga}
+	url = 'https://www.mangaupdates.com/search.html'	
+	values = {'search' : manga,'stype':'title'}
 	data = urllib.urlencode(values)
 	req = urllib2.Request(url, data)
 	response = urllib2.urlopen(req)
 	the_page = response.read()
 	parse = re.search("https://www.mangaupdates.com/series\.html\?id=[0-9]+",the_page);
 	if(parse != None):
-		print(parse.group(0))
-	# Navigate to parse
-		url = parse.group(0)
-		req = urllib2.Request(url)
-		response = urllib2.urlopen(req)
-		print(response)
-	
-def parseResults(soup):
-	results = soup.find_all('a');
-	for link in results:
-		if 'key1' in link.keys():
-			print(link['title'])
-	return 1
-	
+		releases = buildReleasesPage(parse.group(0))
+		releases_page = getPage(releases)
+		parser.feed(releases_page)
+		#should write to a csv but well print for now
 		
-results = searchManga("sdfsdfsdfd")
+		
+def buildReleasesPage(home_url):
+	#print(home_url)
+	base = "https://www.mangaupdates.com/releases.html?search="
+	seriesId = findSeriesID(home_url)
+	end = "&stype=series"
+	return base + seriesId + end
+	
+def findSeriesID(a):
+	return a.split("id=")[1]
+
+def getPage(url):
+	req = urllib2.Request(url)
+	response = urllib2.urlopen(req)
+	return response.read()
+results = searchManga("kiss")
+
 #parseResults(results)
