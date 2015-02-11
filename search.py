@@ -35,18 +35,33 @@ def searchManga(manga):
 	the_page = response.read()
 	parse = re.search("https://www.mangaupdates.com/series\.html\?id=[0-9]+",the_page);
 	if(parse != None):
-		releases = buildReleasesPage(parse.group(0))
-		releases_page = getPage(releases)
-		parser.feed(releases_page)
+		releasesLink = buildReleasesPage(parse.group(0))
+		releasesPage = getPage(releasesLink)
+		releases = buildReleasesTable(releasesPage);
+		print(releases);
 		#should write to a csv but well print for now
 		
 		
-def buildReleasesPage(home_url):
-	#print(home_url)
+def seriesIdToReleases(seriesId):
 	base = "https://www.mangaupdates.com/releases.html?search="
-	seriesId = findSeriesID(home_url)
 	end = "&stype=series"
 	return base + seriesId + end
+	
+
+def buildReleasesPage(homeUrl):
+	#print(home_url)
+	base = "https://www.mangaupdates.com/releases.html?search="
+	seriesId = findSeriesID(homeUrl)
+	end = "&stype=series"
+	return base + seriesId + end
+	
+def buildReleasesTable(page):
+	
+	parse = re.search("<td class='text pad'(.*)</td>",page,re.DOTALL)
+	return parse.group(0)
+	
+	
+	
 	
 def findSeriesID(a):
 	return a.split("id=")[1]
@@ -55,6 +70,8 @@ def getPage(url):
 	req = urllib2.Request(url)
 	response = urllib2.urlopen(req)
 	return response.read()
-results = searchManga("kiss")
+	
 
-#parseResults(results)
+
+searchManga("Ao Haru Ride")
+
