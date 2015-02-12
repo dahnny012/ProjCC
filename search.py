@@ -42,7 +42,7 @@ def searchReleases(id):
 	releases = True
 	page = 1
 	while releases:
-		releasesLink = seriesIdToReleases("60271",page)
+		releasesLink = seriesIdToReleases(id,page)
 		releasesPage = getPage(releasesLink)
 		releases = buildReleasesTable(releasesPage);
 		print(releases);
