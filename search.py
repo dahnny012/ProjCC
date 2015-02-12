@@ -54,7 +54,7 @@ def buildReleasesPage(homeUrl):
 	
 def buildReleasesTable(page):
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
-	print(re.search("<td class='text pad'(.)*</td>",page).group(0))
+	index = 0
 	for m in iterr:
 		# Order 
 		# Date
@@ -62,11 +62,25 @@ def buildReleasesTable(page):
 		# Volume
 		# Chapter
 		# Scanner
-		parser.feed(page[m.start(0):m.end(0)])
+		releaseNode = page[m.start(0):m.end(0)]
+		release = stripTags(releaseNode)
+		#if(index == 6)
+			#Dump the array
+			
+		index = (index +1)%6
 	
-	
-	
-	
+def stripTags(node):
+		#Strip td tag
+		textNode = re.search(">(.*)<",node)
+		text = textNode.group(0)
+		text = text.strip("><")
+		#Strip inside tags
+		if ">" in text:
+			textNode = re.search(">(.*)<",text)
+			text = textNode.group(0)
+			text = text.strip("><")
+		return text
+
 def findSeriesID(a):
 	return a.split("id=")[1]
 
