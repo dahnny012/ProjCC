@@ -17,7 +17,8 @@ import re
 
 class MyHTMLParser(HTMLParser):
     def handle_data(self,data):
-		print(data) 
+		if data != None:
+			print(data) 
  
 parser = MyHTMLParser()
 
@@ -52,14 +53,16 @@ def buildReleasesPage(homeUrl):
 	
 	
 def buildReleasesTable(page):
-	#start = page.index("<td class='text pad'");
-	#end = page.rindex("<td class='text pad'");
-	#print(start)
-	#print(end)
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 	print(re.search("<td class='text pad'(.)*</td>",page).group(0))
 	for m in iterr:
-		print(page[m.start(0):m.end(0)])
+		# Order 
+		# Date
+		# Name
+		# Volume
+		# Chapter
+		# Scanner
+		parser.feed(page[m.start(0):m.end(0)])
 	
 	
 	
