@@ -16,12 +16,8 @@ import re
 
 
 class MyHTMLParser(HTMLParser):
-    def handle_starttag(self, tag, attrs):
-		if(tag == "td"):
-			for attr in attrs:
-				if(attr[1] == "text pad"):
-					print(attrs)
-        
+    def handle_data(self,data):
+		print(data) 
  
 parser = MyHTMLParser()
 
@@ -56,22 +52,14 @@ def buildReleasesPage(homeUrl):
 	
 	
 def buildReleasesTable(page):
-	#parser.feed(page)
-	parse = re.split("<td class='text pad'(.*)</td>",page,re.DOTALL)
-	#return 1
-	for i in range(1,10):
-			reference = i%10
-			if reference == 1:
-				print("Date")
-			if reference == 3:
-				print("Link")
-			if reference == 5:
-				print("Volume")
-			if reference == 7:
-				print("Chapter")
-			if reference == 9:
-				print("Group name")	
-			print(parse[i].strip())
+	#start = page.index("<td class='text pad'");
+	#end = page.rindex("<td class='text pad'");
+	#print(start)
+	#print(end)
+	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
+	print(re.search("<td class='text pad'(.)*</td>",page).group(0))
+	for m in iterr:
+		print(page[m.start(0):m.end(0)])
 	
 	
 	
