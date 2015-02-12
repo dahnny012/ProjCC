@@ -17,10 +17,16 @@ import csv
 
 
 class MyHTMLParser(HTMLParser):
-    def handle_data(self,data):
-		if data != None:
-			print(data) 
- 
+	def __init__(self):
+		self.reset()
+		self.fed = []
+	def handle_data(self,data):
+		self.fed.append(data)
+	def get_data(self):
+		return " ".join(self.fed)
+	def flush_buffer(self):
+		self.fed = []
+		
 parser = MyHTMLParser()
 
 def searchManga(manga):
@@ -94,16 +100,10 @@ def buildReleasesTable(page):
 	return True
 	
 def stripTags(node):
-		#Strip td tag
-		textNode = re.search(">(.*)<",node)
-		text = textNode.group(0)
-		text = text.strip("><")
-		#Strip inside tags
-		if ">" in text:
-			textNode = re.search(">(.*)<",text)
-			text = textNode.group(0)
-			text = text.strip("><")
-		return text
+	parser.feed(node)
+	data = parser.get_data()
+	parser.flush_buffer()
+	return data
 
 def findSeriesID(a):
 	return a.split("id=")[1]
