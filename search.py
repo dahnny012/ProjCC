@@ -3,6 +3,7 @@ import urllib
 from multiprocessing import Pool
 from HTMLParser import HTMLParser
 import re
+import csv
 ##
 ##pool = Pool(10)
 ##p.map(getChapters,[[0,100],[0,200]])
@@ -55,8 +56,8 @@ def buildReleasesPage(homeUrl):
 def buildReleasesTable(page):
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 	index = 0
+	row = []
 	for m in iterr:
-		# Order 
 		# Date
 		# Name
 		# Volume
@@ -64,10 +65,15 @@ def buildReleasesTable(page):
 		# Scanner
 		releaseNode = page[m.start(0):m.end(0)]
 		release = stripTags(releaseNode)
-		#if(index == 6)
-			#Dump the array
-			
-		index = (index +1)%6
+		row.append(release)
+		index = index + 1
+		if(index == 5):
+			with open('test.csv','a') as csvfile:
+				writer = csv.writer(csvfile)
+				writer.writerow(row)
+			print(row)
+			row = []
+		index = index % 5
 	
 def stripTags(node):
 		#Strip td tag
