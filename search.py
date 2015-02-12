@@ -50,7 +50,9 @@ def searchReleases(id):
 	
 		
 def seriesIdToReleases(seriesId,page=1):
-	base = "https://www.mangaupdates.com/releases.html?page=1&search="
+	page = str(page)
+	base = "https://www.mangaupdates.com/releases.html?page="+page
+	base = base +"&search="
 	end = "&stype=series"
 	return base + seriesId + end
 	
