@@ -32,22 +32,33 @@ def searchManga(manga):
 	the_page = response.read()
 	parse = re.search("https://www.mangaupdates.com/series\.html\?id=[0-9]+",the_page);
 	if(parse != None):
-		releasesLink = buildReleasesPage(parse.group(0))
+		#releasesLink = buildReleasesPage(parse.group(0))
+		releasesLink = seriesIdToReleases("60271")
 		releasesPage = getPage(releasesLink)
 		releases = buildReleasesTable(releasesPage);
 		print(releases);
-		#should write to a csv but well print for now
 		
+def searchReleases(id):
+	releases = True
+	page = 1
+	while releases:
+		releasesLink = seriesIdToReleases("60271",page)
+		releasesPage = getPage(releasesLink)
+		releases = buildReleasesTable(releasesPage);
+		print(releases);
+		page = page + 1
+	
 		
-def seriesIdToReleases(seriesId):
-	base = "https://www.mangaupdates.com/releases.html?search="
+def seriesIdToReleases(seriesId,page=1):
+	base = "https://www.mangaupdates.com/releases.html?page=1&search="
 	end = "&stype=series"
 	return base + seriesId + end
 	
 
-def buildReleasesPage(homeUrl):
+def buildReleasesPage(homeUrl,page=1):
 	#print(home_url)
-	base = "https://www.mangaupdates.com/releases.html?search="
+	base = "https://www.mangaupdates.com/releases.html?page="+page
+	base = base +"&search="
 	seriesId = findSeriesID(homeUrl)
 	end = "&stype=series"
 	return base + seriesId + end
@@ -57,6 +68,10 @@ def buildReleasesTable(page):
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 	index = 0
 	row = []
+	try:
+		iterr.next().start(0)
+	except Exception, e:
+		return False
 	for m in iterr:
 		# Date
 		# Name
@@ -74,6 +89,7 @@ def buildReleasesTable(page):
 			print(row)
 			row = []
 		index = index % 5
+	return True
 	
 def stripTags(node):
 		#Strip td tag
@@ -96,6 +112,6 @@ def getPage(url):
 	return response.read()
 	
 
-
-searchManga("Ao Haru Ride")
+searchReleases("60271")
+#searchManga("Ao Haru Ride")
 
