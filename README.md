@@ -2,4 +2,4 @@
 
 #TODOS:
 
-## Read from charlies file.
+## Figure out how this botnet is going to work.
