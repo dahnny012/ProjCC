@@ -1,13 +1,13 @@
 import urllib2
 import urllib
-from threading import Thread
+import threading
 from HTMLParser import HTMLParser
 import re
 import csv
 import time
 
 
-
+lock = threading.Lock()
 class TagStripper(HTMLParser):
 	def __init__(self):
 		self.reset()
@@ -26,7 +26,7 @@ class search():
 		threads = []
 		t0 = time.time()
 		for id in self.idList:
-			t = Thread(target=self.searchReleases, args=(id,))
+			t = threading.Thread(target=self.searchReleases, args=(id,))
 			threads.append(t)
 			t.start()
 		for i in range(0,len(self.idList)):
@@ -70,10 +70,12 @@ class search():
 			header = header + 1
 			#Dump the list to csv after we get the release info
 			if(header == 5):
-				with open('test.csv','a') as csvfile:
-					writer = csv.writer(csvfile)
-					writer.writerow(row)
-				row = []
+				with lock:
+					with open('test.csv','a') as csvfile:
+						writer = csv.writer(csvfile)
+						writer.writerow(row)
+						csvfile.close()
+					row = []
 			header = header % 5
 		return True
 		
@@ -90,3 +92,21 @@ class search():
 		req = urllib2.Request(url)
 		response = urllib2.urlopen(req)
 		return response.read()
+		
+		
+		
+scraper = search(["1","2","3","4","5"])
+scraper.run()
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
