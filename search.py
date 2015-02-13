@@ -5,6 +5,7 @@ from HTMLParser import HTMLParser
 import re
 import csv
 import time
+import io,os,sys
 
 
 fileLock = threading.Lock()
@@ -21,8 +22,13 @@ class TagStripper(HTMLParser):
 		self.fed = []
 
 class search():
-	def __init__(self,idList):
+	def __init__(self,idList=None):
 		self.idList = idList
+	def readFile(self,filename):
+		with open('test.txt', 'rb') as file:
+			lines = [line.rstrip('\n') for line in file]
+			self.idList = lines
+		print(lines)
 	def run(self):
 		threads = []
 		t0 = time.time()
@@ -107,7 +113,8 @@ class search():
 		
 		
 scraper = search(["1","2","3","4"])
-scraper.run()
+scraper.readFile("test.txt")
+#scraper.run()
 		
 		
 		
