@@ -18,22 +18,6 @@ class TagStripper(HTMLParser):
 		return " ".join(self.fed)
 	def flush_buffer(self):
 		self.fed = []
-
-def searchManga(manga):
-	parser = TagStripper()
-	url = 'https://www.mangaupdates.com/search.html'	
-	values = {'search' : manga,'stype':'title'}
-	data = urllib.urlencode(values)
-	req = urllib2.Request(url, data)
-	response = urllib2.urlopen(req)
-	the_page = response.read()
-	parse = re.search("https://www.mangaupdates.com/series\.html\?id=[0-9]+",the_page);
-	if(parse != None):
-		#releasesLink = buildReleasesPage(parse.group(0))
-		releasesLink = seriesIdToReleases("60271")
-		releasesPage = getPage(releasesLink)
-		releases = buildReleasesTable(releasesPage,parser);
-		print(releases);
 		
 def searchReleases(id):
 	releases = True
@@ -54,36 +38,30 @@ def seriesIdToReleases(seriesId,page=1):
 	end = "&stype=series"
 	return base + seriesId + end
 	
-
-def buildReleasesPage(homeUrl,page=1):
-	#print(home_url)
-	base = "https://www.mangaupdates.com/releases.html?page="+page
-	base = base +"&search="
-	seriesId = findSeriesID(homeUrl)
-	end = "&stype=series"
-	return base + seriesId + end
-	
 	
 def buildReleasesTable(page,parser):
+	#Find table of releases
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
-	index = 0
+	header = 0
 	row = []
 	try:
+		#If there is a release
 		iterr.next().start(0)
 	except Exception, e:
 		return False
 	for m in iterr:
+		#For each table element strip it and add it to the list
 		releaseNode = page[m.start(0):m.end(0)]
 		release = stripTags(releaseNode,parser)
 		row.append(release)
-		index = index + 1
-		if(index == 5):
+		header = header + 1
+		#Dump the list to csv after we get the release info
+		if(header == 5):
 			with open('test.csv','a') as csvfile:
 				writer = csv.writer(csvfile)
 				writer.writerow(row)
-			print(row)
 			row = []
-		index = index % 5
+		header = header % 5
 	return True
 	
 def stripTags(node,parser):
