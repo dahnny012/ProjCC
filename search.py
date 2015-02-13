@@ -1,22 +1,14 @@
 import urllib2
 import urllib
-from multiprocessing import Pool
+from threading import Thread
 from HTMLParser import HTMLParser
 import re
 import csv
-##
-##pool = Pool(10)
-##p.map(getChapters,[[0,100],[0,200]])
-
-#def getChapters(start,stop)
-	# Define a start and stop
-	# till N
-#	for chapter in list:
-#		results = searchManga(chapter)
-#		scanner = parseResults(results)
+import time
 
 
-class MyHTMLParser(HTMLParser):
+
+class TagStripper(HTMLParser):
 	def __init__(self):
 		self.reset()
 		self.fed = []
@@ -26,10 +18,9 @@ class MyHTMLParser(HTMLParser):
 		return " ".join(self.fed)
 	def flush_buffer(self):
 		self.fed = []
-		
-parser = MyHTMLParser()
 
 def searchManga(manga):
+	parser = TagStripper()
 	url = 'https://www.mangaupdates.com/search.html'	
 	values = {'search' : manga,'stype':'title'}
 	data = urllib.urlencode(values)
@@ -41,16 +32,17 @@ def searchManga(manga):
 		#releasesLink = buildReleasesPage(parse.group(0))
 		releasesLink = seriesIdToReleases("60271")
 		releasesPage = getPage(releasesLink)
-		releases = buildReleasesTable(releasesPage);
+		releases = buildReleasesTable(releasesPage,parser);
 		print(releases);
 		
 def searchReleases(id):
 	releases = True
 	page = 1
+	parser = TagStripper()
 	while releases:
 		releasesLink = seriesIdToReleases(id,page)
 		releasesPage = getPage(releasesLink)
-		releases = buildReleasesTable(releasesPage);
+		releases = buildReleasesTable(releasesPage,parser);
 		print(releases);
 		page = page + 1
 	
@@ -72,7 +64,7 @@ def buildReleasesPage(homeUrl,page=1):
 	return base + seriesId + end
 	
 	
-def buildReleasesTable(page):
+def buildReleasesTable(page,parser):
 	iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 	index = 0
 	row = []
@@ -81,13 +73,8 @@ def buildReleasesTable(page):
 	except Exception, e:
 		return False
 	for m in iterr:
-		# Date
-		# Name
-		# Volume
-		# Chapter
-		# Scanner
 		releaseNode = page[m.start(0):m.end(0)]
-		release = stripTags(releaseNode)
+		release = stripTags(releaseNode,parser)
 		row.append(release)
 		index = index + 1
 		if(index == 5):
@@ -99,7 +86,7 @@ def buildReleasesTable(page):
 		index = index % 5
 	return True
 	
-def stripTags(node):
+def stripTags(node,parser):
 	parser.feed(node)
 	data = parser.get_data()
 	parser.flush_buffer()
@@ -114,6 +101,19 @@ def getPage(url):
 	return response.read()
 	
 
-searchReleases("60271")
-#searchManga("Ao Haru Ride")
 
+threads = []
+releases = ["1","2","3","4","5"]
+t0 = time.time()
+for i in range(5):
+	t = Thread(target=searchReleases, args=(releases[i],))
+	threads.append(t)
+	t.start()
+	
+threads[0].join()
+threads[1].join()
+threads[2].join()
+threads[3].join()
+threads[4].join()
+print("Finished in: ")
+print time.time() - t0
