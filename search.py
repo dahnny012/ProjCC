@@ -10,6 +10,7 @@ import io,os,sys
 
 fileLock = threading.Lock()
 queueLock = threading.Lock()
+logLock = threading.Lock()
 class TagStripper(HTMLParser):
 	def __init__(self):
 		self.reset()
@@ -25,10 +26,10 @@ class search():
 	def __init__(self,idList=None):
 		self.idList = idList
 	def readFile(self,filename):
-		with open('test.txt', 'rb') as file:
+		with open(filename, 'rb') as file:
 			lines = [line.rstrip('\n') for line in file]
 			self.idList = lines
-		print(lines)
+		print("File: " + filename)
 	def run(self):
 		threads = []
 		t0 = time.time()
@@ -58,6 +59,7 @@ class search():
 			releasesPage = self.getPage(releasesLink)
 			releases = self.buildReleasesTable(releasesPage,parser);
 			page = page + 1
+		self.log(id)
 		self.searchReleases(idList)
 		
 			
@@ -109,12 +111,15 @@ class search():
 		req = urllib2.Request(url)
 		response = urllib2.urlopen(req)
 		return response.read()
+	def log(self,id):
+		with logLock:
+			with open('log.txt','a') as file:
+				file.write(id + "\n")
 		
-		
-		
-scraper = search(["1","2","3","4"])
+	
+scraper = search()
 scraper.readFile("test.txt")
-#scraper.run()
+scraper.run()
 		
 		
 		
