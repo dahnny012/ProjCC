@@ -25,7 +25,13 @@ class TagStripper(HTMLParser):
 class search():
 	def __init__(self,idList=None):
 		self.idList = idList
+		self.filename = "default"
 	def readFile(self,filename):
+		extRegex = re.compile('\.[A-Za-z]+$', re.IGNORECASE)
+		fileExt = extRegex.search(filename)
+		fileExt = fileExt.group(0)
+		filename = extRegex.sub('', filename)
+		self.filename = filename
 		with open(filename, 'rb') as file:
 			lines = [line.rstrip('\n') for line in file]
 			self.idList = lines
@@ -90,7 +96,7 @@ class search():
 			#Dump the list to csv after we get the release info
 			if(header == 5):
 				with fileLock:
-					with open('test.csv','a') as csvfile:
+					with open(self.filename+'.csv','a') as csvfile:
 						writer = csv.writer(csvfile)
 						writer.writerow(row)
 						csvfile.close()
@@ -117,7 +123,7 @@ class search():
 		return page
 	def log(self,id):
 		with logLock:
-			with open('log.txt','a') as file:
+			with open(self.filename+".log",'a') as file:
 				file.write(id + "\n")
 				file.close()
 	
