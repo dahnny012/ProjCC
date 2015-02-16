@@ -33,7 +33,7 @@ class search():
 	def run(self):
 		threads = []
 		t0 = time.time()
-		numThreads = 3
+		numThreads = 20
 		for id in range(0,numThreads):
 			t = threading.Thread(target=self.searchReleases, args=(self.idList,))
 			threads.append(t)
@@ -57,7 +57,7 @@ class search():
 		while releases:
 			releasesLink = self.seriesIdToReleases(id,page)
 			releasesPage = self.getPage(releasesLink)
-			releases = self.buildReleasesTable(releasesPage,parser);
+			releases = self.buildReleasesTable(releasesPage,parser,id);
 			page = page + 1
 		self.log(id)
 		self.searchReleases(idList)
@@ -71,11 +71,11 @@ class search():
 		return base + seriesId + end
 		
 		
-	def buildReleasesTable(self,page,parser):
+	def buildReleasesTable(self,page,parser,id):
 		#Find table of releases
 		iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 		header = 0
-		row = []
+		row = [id]
 		try:
 			#If there is a release
 			iterr.next().start(0)
@@ -94,7 +94,7 @@ class search():
 						writer = csv.writer(csvfile)
 						writer.writerow(row)
 						csvfile.close()
-					row = []
+					row = [id]
 			header = header % 5
 		return True
 		
@@ -108,17 +108,21 @@ class search():
 		return a.split("id=")[1]
 	
 	def getPage(self,url):
+		#print("Creating request")
 		req = urllib2.Request(url)
+		#print("Attempting to open")
 		response = urllib2.urlopen(req)
-		return response.read()
+		#print("Attempting to read")
+		page = response.read()
+		return page
 	def log(self,id):
 		with logLock:
 			with open('log.txt','a') as file:
 				file.write(id + "\n")
-		
+				file.close()
 	
 scraper = search()
-scraper.readFile("test.txt")
+scraper.readFile("seriesIDs001.txt")
 scraper.run()
 		
 		
