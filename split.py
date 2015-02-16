@@ -9,10 +9,11 @@ def split(filename,numLines):
     with open(filename,"r") as file:
         list = file.readlines()
         
-    extRegex = re.compile('\.[A-Za-z]+$', re.IGNORECASE)
+    extRegex = re.compile('\.[A-Za-z]+$')
     fileExt = extRegex.search(filename)
-    fileExt = fileExt.group(0)
-    filename = extRegex.sub('', filename)
+    if fileExt != None:
+    	fileExt = fileExt.group(0)
+    	filename = extRegex.sub('', filename)
     
     start = 0
     stop = 0
