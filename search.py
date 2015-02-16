@@ -31,9 +31,7 @@ class search():
 			lines = [line.rstrip('\n') for line in file]
 			self.idList = lines
 		print("File: " + filename)
-		extRegex = re.compile('\.[A-Za-z]+$')
-		filename = extRegex.sub('', filename)
-		self.filename = filename
+		self.filename = re.sub('\.[A-Za-z]+$', '', filename)
 	def run(self):
 		threads = []
 		t0 = time.time()
