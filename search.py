@@ -27,15 +27,13 @@ class search():
 		self.idList = idList
 		self.filename = "default"
 	def readFile(self,filename):
-		extRegex = re.compile('\.[A-Za-z]+$', re.IGNORECASE)
-		fileExt = extRegex.search(filename)
-		fileExt = fileExt.group(0)
-		filename = extRegex.sub('', filename)
-		self.filename = filename
 		with open(filename, 'rb') as file:
 			lines = [line.rstrip('\n') for line in file]
 			self.idList = lines
 		print("File: " + filename)
+		extRegex = re.compile('\.[A-Za-z]+$')
+		filename = extRegex.sub('', filename)
+		self.filename = filename
 	def run(self):
 		threads = []
 		t0 = time.time()
