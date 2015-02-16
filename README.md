@@ -2,4 +2,6 @@
 
 #TODOS:
 
-## Figure out how this botnet is going to work.
+## Compare log and input file
+## Append IDs to csv
+## Kill family of threads after we get hardblocked
