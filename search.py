@@ -17,12 +17,24 @@ class TagStripper(HTMLParser):
 	def __init__(self):
 		self.reset()
 		self.fed = []
+		self.group = []
+	def handle_starttag(self,tag,attrs):
+	    if tag == "a":
+	        if ('title', 'Group Info') in attrs:
+	            url = attrs[0][1]
+	            index = url.find("id=")
+	            id = url[index+3:len(url)]
+	            if id not in self.group:
+					self.group.append(id)
+					
 	def handle_data(self,data):
 		self.fed.append(data)
 	def get_data(self):
 		return " ".join(self.fed)
 	def flush_buffer(self):
 		self.fed = []
+	def flush_groups(self):
+		self.group = []
 
 class search():
 	def __init__(self,idList=None):
@@ -46,7 +58,7 @@ class search():
 			threads[i].join()
 		print("Finished in: ")
 		print time.time() - t0
-		compare(self.filename + ".txt", self.filename + ".log")
+		compare.compare(self.filename + ".txt", self.filename + ".log")
 	def searchReleases(self,idList):
 		exit = False
 		with queueLock:
@@ -111,6 +123,11 @@ class search():
 				with fileLock:
 					with open(self.filename+'.csv','a') as csvfile:
 						writer = csv.writer(csvfile)
+						# before csv write, add the group info
+						for groupID in parser.group:
+							row.append(groupID)
+						parser.flush_groups()
+						
 						writer.writerow(row)
 						csvfile.close()
 					row = [id]
