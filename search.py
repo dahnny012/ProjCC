@@ -6,6 +6,7 @@ import re
 import csv
 import time
 import io,os,sys
+import compare
 
 
 fileLock = threading.Lock()
@@ -45,6 +46,7 @@ class search():
 			threads[i].join()
 		print("Finished in: ")
 		print time.time() - t0
+		compare(self.filename + ".txt", self.filename + ".log")
 	def searchReleases(self,idList):
 		exit = False
 		with queueLock:
