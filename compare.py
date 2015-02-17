@@ -19,4 +19,4 @@ def compare(baseFile,generatedFile):
                 diff.write(key)
 
 
-compare("seriesIDs001.txt","seriesIDs001.log")
+# compare("seriesIDs001.txt","seriesIDs001.log")
