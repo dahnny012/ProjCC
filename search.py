@@ -53,9 +53,12 @@ class search():
 				exit = True
 		if exit:
 			return
-		releases = True
 		page = 1
 		parser = TagStripper()
+		if self.checkExists(id):
+			releases = True
+		else:
+			releases = False
 		while releases:
 			releasesLink = self.seriesIdToReleases(id,page)
 			releasesPage = self.getPage(releasesLink)
@@ -72,14 +75,17 @@ class search():
 		end = "&stype=series"
 		return base + seriesId + end
 		
-		
-	def buildReleasesTable(self,page,parser,id):
-		if page.find("<td class="tab_middle">Error</td>") != -1:
+	def checkExists(self,id):
+		url = "https://www.mangaupdates.com/series.html?id="+id
+		page = self.getPage(url)
+		if page.find("<td class=\"tab_middle\">Error</td>") != -1:
 			print("Bad series ID: " + id)
 			with open('badSeriesIDs.txt', 'a') as badIDFile:
 				badIDFile.write(id + '\n')
 			return False
+		return True
 		
+	def buildReleasesTable(self,page,parser,id):
 		#Find table of releases
 		iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 		header = 0
