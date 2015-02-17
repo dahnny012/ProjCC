@@ -11,6 +11,7 @@ import io,os,sys
 fileLock = threading.Lock()
 queueLock = threading.Lock()
 logLock = threading.Lock()
+errorLock = threading.Lock()
 class TagStripper(HTMLParser):
 	def __init__(self):
 		self.reset()
@@ -80,8 +81,10 @@ class search():
 		page = self.getPage(url)
 		if page.find("<td class=\"tab_middle\">Error</td>") != -1:
 			print("Bad series ID: " + id)
-			with open('badSeriesIDs.txt', 'a') as badIDFile:
-				badIDFile.write(id + '\n')
+			with errorLock:
+				with open('badSeriesIDs.txt', 'a') as badIDFile:
+					badIDFile.write(id + '\n')
+					badIDFile.close()
 			return False
 		return True
 		
