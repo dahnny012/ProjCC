@@ -74,6 +74,12 @@ class search():
 		
 		
 	def buildReleasesTable(self,page,parser,id):
+		if page.find("<td class="tab_middle">Error</td>") != -1:
+			print("Bad series ID: " + id)
+			with open('badSeriesIDs.txt', 'a') as badIDFile:
+				badIDFile.write(id + '\n')
+			return False
+		
 		#Find table of releases
 		iterr = re.finditer("<td class='text pad'(.)*</td>",page)
 		header = 0
@@ -123,19 +129,14 @@ class search():
 				file.write(id + "\n")
 				file.close()
 	
+
 scraper = search()
-scraper.readFile("seriesIDs001.txt")
-scraper.run()
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+argLen = len(sys.argv)
+if argLen > 1:
+	for i in range (1, argLen):
+		scraper.readFile(sys.argv[i])
+		scraper.run()
+else:
+	print("Usage: 'python search.py <filename> [<filename 2> ... <filename n>]'")
+	scraper.readFile("seriesIDs001.txt")
+	scraper.run()
