@@ -1,6 +1,3 @@
-
-
-
 def compare(baseFile,generatedFile):
     map1 = {}
     map2 = {}
@@ -16,6 +13,10 @@ def compare(baseFile,generatedFile):
         map1[id] = id
     for id in generated:
         map2[id] = id
-    for key in map1:
-        if key not in map2:
-            print(key)
+    with open("missing_"+generatedFile,"w") as diff:
+        for key in map1:
+            if key not in map2:
+                diff.write(key)
+
+
+compare("seriesIDs001.txt","seriesIDs001.log")
