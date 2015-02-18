@@ -2,6 +2,6 @@
 
 #TODOS:
 
-## Ready to run i believe
+## Scraping done , awaiting feedback
 
 
