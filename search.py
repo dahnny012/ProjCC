@@ -1,163 +1,231 @@
-import urllib2
 import urllib
 import threading
 from HTMLParser import HTMLParser
 import re
-import csv
 import time
 import io,os,sys
-import compare
-
+import codecs
+import repairUnicode
 
 fileLock = threading.Lock()
 queueLock = threading.Lock()
 logLock = threading.Lock()
 errorLock = threading.Lock()
-class TagStripper(HTMLParser):
-	def __init__(self):
-		self.reset()
-		self.fed = []
-		self.group = []
-	def handle_starttag(self,tag,attrs):
-	    if tag == "a":
-	        if ('title', 'Group Info') in attrs:
-	            url = attrs[0][1]
-	            index = url.find("id=")
-	            id = url[index+3:len(url)]
-	            if id not in self.group:
-					self.group.append(id)
-					
-	def handle_data(self,data):
-		self.fed.append(data)
-	def get_data(self):
-		return " ".join(self.fed)
-	def flush_buffer(self):
-		self.fed = []
-	def flush_groups(self):
-		self.group = []
+
+nameReg    = re.compile("(?<=<title>Baka\-Updates Manga \- ).+(?=</title>)")
+releaseReg = re.compile("<td class='text pad'.*?</td>")
+nodeReg    = re.compile("(?<=>).*?(?=<)")
+groupReg   = re.compile("((?<=id=)[0-9]+)\' title=\'Group Info\'>(.*?(?=</a>))")
+# Note that groupReg contains two parenthesized groups,
+# so we can call group(0) for the entire match, or group(1) for the gID and group(2) for the gName
 
 class search():
-	def __init__(self,idList=None):
+	def __init__(self, idList=None):
 		self.idList = idList
 		self.filename = "default"
-	def readFile(self,filename):
-		with open(filename, 'rb') as file:
-			lines = [line.rstrip('\n') for line in file]
-			self.idList = lines
-		print("File: " + filename)
+		self.htmlParser = HTMLParser()
+
+	def readFile(self, filename):
+		with open(filename, 'r') as file:
+			self.idList = [line.rstrip('\n') for line in file]
+		print("File: %s" % filename)
 		self.filename = re.sub('\.[A-Za-z]+$', '', filename)
+
+		# Clear the log
+		# Clear the csv and write the header row
+		self.clearFile(self.filename + ".log")
+		self.clearFile(self.filename + ".csv")
+		self.writeRow(self.filename + ".csv", ["SERIES_ID", "DATE", "SERIES_NAME", "VOLUME", "CHAPTER", "GROUP_NAME", "GROUP_ID"])
+
+	# Multithread and wait for them to finish executing
 	def run(self):
-		threads = []
 		t0 = time.time()
+
+		threads = []
 		numThreads = 20
-		for id in range(0,numThreads):
+		for i in range(numThreads):
 			t = threading.Thread(target=self.searchReleases, args=(self.idList,))
 			threads.append(t)
 			t.start()
-		for i in range(0,numThreads):
-			threads[i].join()
-		print("Finished in: ")
-		print time.time() - t0
-		compare.compare(self.filename + ".txt", self.filename + ".log")
-	def searchReleases(self,idList):
+		for thread in threads:
+			thread.join()
+
+		print("Finished in: %s" % (time.time() - t0))
+
+	# Worker-threads
+	def searchReleases(self, idList):
 		exit = False
 		with queueLock:
 			try:
-				id = idList.pop()
+				sId = idList.pop()
 			except:
 				exit = True
 		if exit:
 			return
-		page = 1
-		parser = TagStripper()
-		if self.checkExists(id):
+
+		# Hurray for weak typing
+		sName = self.checkExists(sId)
+
+		if sName != False:
 			releases = True
 		else:
 			releases = False
+
+		page = 1
 		while releases:
-			releasesLink = self.seriesIdToReleases(id,page)
+			releasesLink = self.seriesIdToReleases(sId, page)
 			releasesPage = self.getPage(releasesLink)
-			releases = self.buildReleasesTable(releasesPage,parser,id);
-			page = page + 1
-		self.log(id)
+			releases = self.buildReleasesTable(releasesPage, sId, sName);
+			page += 1
+		self.log(sId)
 		self.searchReleases(idList)
-		
 			
-	def seriesIdToReleases(self,seriesId,page=1):
+	# "An abstraction to hide stuff"
+	def seriesIdToReleases(self, sId, page=1):
 		page = str(page)
-		base = "https://www.mangaupdates.com/releases.html?page="+page
-		base = base +"&search="
-		end = "&stype=series"
-		return base + seriesId + end
+		URL = "https://www.mangaupdates.com/releases.html?page=" + page +"&search=" + sId + "&stype=series"
+		return URL
 		
-	def checkExists(self,id):
-		url = "https://www.mangaupdates.com/series.html?id="+id
+	# Open and close
+	def clearFile(self, filename):
+		file1 = open(filename, 'w')
+		file1.close()
+
+	# Return the series name from the sId
+	# If the page doesn't exist, log it and return False
+	def checkExists(self, sId):
+		url = "https://www.mangaupdates.com/series.html?id=" + sId
 		page = self.getPage(url)
-		if page.find("<td class=\"tab_middle\">Error</td>") != -1:
-			print("Bad series ID: " + id)
+		name = nameReg.search(page)
+		if name != None:
+			sName = name.group(0)
+			return sName
+		else:
+			print("Bad series ID: " + sId)
 			with errorLock:
 				with open('badSeriesIDs.txt', 'a') as badIDFile:
-					badIDFile.write(id + '\n')
-					badIDFile.close()
+					badIDFile.write(sId + '\n')
 			return False
-		return True
+
+		return False
 		
-	def buildReleasesTable(self,page,parser,id):
-		#Find table of releases
-		iterr = re.finditer("<td class='text pad'(.)*</td>",page)
-		header = 0
-		row = [id]
+	def buildReleasesTable(self, page, sId, sName = None):
+		# Converting to a list is an easy way to check len()
+		nodes = list(re.finditer("<td class='text pad'(.)*</td>",page))
+
+		if len(nodes) != 0:
+			header = 0
+			row = [sId]
+
+			# For each table element strip it and add it to the list
+			for node in nodes:
+				header += 1
+
+				if header == 2 and sName != None:
+					row.append(sName)
+				elif header < 5:
+					releaseNode = node.group(0)
+					release = self.stripTags1(releaseNode)
+					row.append(release)
+
+				# header==5 represents the last node in MangaUpdates's table row
+				# This means, 1) We call stripTags2 for gNames and gIDs, and
+				# 2) We write to the output csv
+				elif header == 5:
+					releaseNode = node.group(0)
+					release = self.stripTags2(releaseNode)
+
+					# Check for cases with group name, but without group id
+					if release != False:
+						row.extend(release)
+					else:
+						row.append(self.stripTags1(releaseNode))
+
+					with fileLock:
+						self.writeRow(self.filename + '.csv', row)
+
+					row = [sId]
+					header = 0
+				else:
+					print("header in buildReleasesTable out of range: %d" % header)
+					return False
+			return True
+		else:
+			return False
+
+  # Mimic csv.writer().writeRow(), since csv isn't compatible with codecs.open()
+	def writeRow(self, filename, row):
+		row = [self.encodeStr(item) for item in row]
+		rowStr = ",".join(row) + '\n'
+		with codecs.open(filename, 'a', 'utf-8') as outFile:
+			outFile.write(rowStr)
+
+	# Isolate text from a tr element
+	def stripTags1(self, node):
+		node = nodeReg.search(node)
+		outStr = node.group(0)
+		return outStr
+
+	# Isolate group names and ids from a tr element
+	def stripTags2(self, node):
+		nodes  = list(groupReg.finditer(node))
+		if len(nodes) == 0:
+			return False
+		gIDs   = []
+		gNames = []
+		outArr = []
+
+		for node in nodes:
+			currNum = node.group(1)
+			gIDs.append(currNum)
+			gNames.append(node.group(2))
+
+		outArr.append(" & ".join(gNames))
+		outArr.extend(gIDs)
+
+		return outArr
+
+	# Encode to UTF to wrap the string, then decode back out and repair junk unicode
+	def encodeStr(self, inStr):
 		try:
-			#If there is a release
-			iterr.next().start(0)
-		except Exception, e:
+			outStr = inStr.encode('utf-8')
+			outStr = '"' + outStr + '"'
+			outStr = outStr.decode('utf-8')
+			outStr = repairUnicode.fix_bad_unicode(outStr)
+		except:
+			print("Failure to encode: %s" % inStr)
 			return False
-		for m in iterr:
-			#For each table element strip it and add it to the list
-			releaseNode = page[m.start(0):m.end(0)]
-			release = self.stripTags(releaseNode,parser)
-			row.append(release)
-			header = header + 1
-			#Dump the list to csv after we get the release info
-			if(header == 5):
-				with fileLock:
-					with open(self.filename+'.csv','a') as csvfile:
-						writer = csv.writer(csvfile)
-						# before csv write, add the group info
-						for groupID in parser.group:
-							row.append(groupID)
-						parser.flush_groups()
-						
-						writer.writerow(row)
-						csvfile.close()
-					row = [id]
-			header = header % 5
-		return True
-		
-	def stripTags(self,node,parser):
-		parser.feed(node)
-		data = parser.get_data()
-		parser.flush_buffer()
-		return data
-	
-	def findSeriesID(self,a):
+		return outStr
+
+	def findSeriesID(self, a):
 		return a.split("id=")[1]
 	
-	def getPage(self,url):
-		#print("Creating request")
-		req = urllib2.Request(url)
-		#print("Attempting to open")
-		response = urllib2.urlopen(req)
-		#print("Attempting to read")
-		page = response.read()
-		return page
-	def log(self,id):
-		with logLock:
-			with open(self.filename+".log",'a') as file:
-				file.write(id + "\n")
-				file.close()
-	
+	def getPage(self, url):
+		try:
+			response = urllib.urlopen(url)
+			page = response.read()
+		except:
+			# It's all good, just keep trying.
+			print("No response. Retrying %s" % url)
+			page = self.getPage(url)
 
+		try:
+			# Decode latin-1 and unescape HTML entities like &lt;
+			page = page.decode('iso-8859-1')
+			page = self.htmlParser.unescape(page)
+		except:
+			print("Failure to encode: %s" % url)
+
+		return page
+
+	def log(self, sId):
+		with logLock:
+			with open(self.filename + ".log",'a') as outFile:
+				outFile.write(sId + "\n")
+
+
+# Script execution
+# Check for commandline arguments
 scraper = search()
 argLen = len(sys.argv)
 if argLen > 1:
@@ -165,6 +233,7 @@ if argLen > 1:
 		scraper.readFile(sys.argv[i])
 		scraper.run()
 else:
-	print("Usage: 'python search.py <filename> [<filename 2> ... <filename n>]'")
-	scraper.readFile("seriesIDs001.txt")
+	print ("Usage: 'python search.py <filename> [<filename 2> ... <filename n>]'")
+	print "Default",
+	scraper.readFile("uniqueSeries.txt")
 	scraper.run()
