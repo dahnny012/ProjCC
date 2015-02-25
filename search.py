@@ -54,31 +54,28 @@ class search():
 
 	# Worker-threads
 	def searchReleases(self, idList):
-		exit = False
-		with queueLock:
-			try:
-				sId = idList.pop()
-			except:
-				exit = True
-		if exit:
-			return
+		while True:
+			with queueLock:
+				try:
+					sId = idList.pop()
+				except:
+					return
 
-		# Hurray for weak typing
-		sName = self.checkExists(sId)
+			# Hurray for weak typing
+			sName = self.checkExists(sId)
 
-		if sName != False:
-			releases = True
-		else:
-			releases = False
+			if sName != False:
+				releases = True
+			else:
+				releases = False
 
-		page = 1
-		while releases:
-			releasesLink = self.seriesIdToReleases(sId, page)
-			releasesPage = self.getPage(releasesLink)
-			releases = self.buildReleasesTable(releasesPage, sId, sName);
-			page += 1
-		self.log(sId)
-		self.searchReleases(idList)
+			page = 1
+			while releases:
+				releasesLink = self.seriesIdToReleases(sId, page)
+				releasesPage = self.getPage(releasesLink)
+				releases = self.buildReleasesTable(releasesPage, sId, sName);
+				page += 1
+			self.log(sId)
 			
 	# "An abstraction to hide stuff"
 	def seriesIdToReleases(self, sId, page=1):
@@ -206,8 +203,8 @@ class search():
 			page = response.read()
 		except:
 			# It's all good, just keep trying.
-			print("No response. Retrying %s" % url)
-			page = self.getPage(url)
+			print("Retrying %s" % url)
+			return self.getPage(url)
 
 		try:
 			# Decode latin-1 and unescape HTML entities like &lt;
