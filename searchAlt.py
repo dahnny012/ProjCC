@@ -29,20 +29,18 @@ import codecs
 # repairUnicode is an outside library (recipe?) I ripped
 import repairUnicode
 
-fileLock = threading.Lock()
 queueLock = threading.Lock()
-logLock = threading.Lock()
+logLock   = threading.Lock()
 errorLock = threading.Lock()
 
 extReg     = re.compile('\.[A-Za-z]+$')
 nameReg    = re.compile('(?<=<title>Baka\-Updates Manga \- ).+(?=</title>)')
 releaseReg = re.compile('<td class=\'text pad\'.*?</td>')
 nodeReg    = re.compile('(?<=>).*?(?=<)')
-
+groupReg   = re.compile("((?<=id=)[0-9]+)\' title=\'Group Info\'>(.*?(?=</a>))")
 # NOTE: groupReg contains two parenthesized groups
 # so we can call group(0) for the entire match,
 # or group(1) for the gID and group(2) for the gName
-groupReg   = re.compile("((?<=id=)[0-9]+)\' title=\'Group Info\'>(.*?(?=</a>))")
 
 
 class search():
@@ -50,16 +48,16 @@ class search():
 		self.idList     = idList
 		self.htmlParser = HTMLParser()
 		self.filename   = "uniqueSeries.txt"
-		self.dirname    = "MU_scrape/"
+		self.dirname    = "uniqueSeries/"
 
 	def readFile(self, filename=None):
 		if filename == None:
 			filename = self.filename
-		with open(filename, 'r') as file:
-			self.idList = [line.rstrip('\n') for line in file]
+		with open(filename, 'r') as inFile:
+			self.idList = [line.rstrip('\n') for line in inFile]
 		print("File: %s" % filename)
 		self.filename = extReg.sub('', filename)
-		self.dirname  = self.filename
+		self.dirname  = self.filename + "/"
 		# Create the directory if necessary
 		# Check if the log already exists and append a number to the filename
 		if not os.path.exists(self.dirname):
@@ -110,7 +108,6 @@ class search():
 				releasesPage = self.getPage(releasesLink)
 				releases = self.buildReleasesTable(releasesPage, sId, sName);
 				page += 1
-			# self.log(sId)
 			self.lockWrite(sId, logLock, "_log.txt")
 			
 	# "An abstraction to hide stuff"
@@ -189,7 +186,6 @@ class search():
 					else:
 						row.append(self.stripTags1(releaseNode))
 
-					with fileLock:
 						self.writeRow(self.dirname + str(sId) + "/" + self.filename + '.csv', row)
 
 					row = [sId]
