@@ -30,17 +30,18 @@ import codecs
 import repairUnicode
 
 queueLock = threading.Lock()
-logLock   = threading.Lock()
+logLock = threading.Lock()
 errorLock = threading.Lock()
 
 extReg     = re.compile('\.[A-Za-z]+$')
 nameReg    = re.compile('(?<=<title>Baka\-Updates Manga \- ).+(?=</title>)')
 releaseReg = re.compile('<td class=\'text pad\'.*?</td>')
 nodeReg    = re.compile('(?<=>).*?(?=<)')
-groupReg   = re.compile("((?<=id=)[0-9]+)\' title=\'Group Info\'>(.*?(?=</a>))")
+
 # NOTE: groupReg contains two parenthesized groups
 # so we can call group(0) for the entire match,
 # or group(1) for the gID and group(2) for the gName
+groupReg   = re.compile("((?<=id=)[0-9]+)\' title=\'Group Info\'>(.*?(?=</a>))")
 
 
 class search():
@@ -53,15 +54,19 @@ class search():
 	def readFile(self, filename=None):
 		if filename == None:
 			filename = self.filename
-		with open(filename, 'r') as inFile:
-			self.idList = [line.rstrip('\n') for line in inFile]
+		with open(filename, 'r') as file:
+			self.idList = [line.rstrip('\n') for line in file]
 		print("File: %s" % filename)
 		self.filename = extReg.sub('', filename)
-		self.dirname  = self.filename + "/"
+
 		# Create the directory if necessary
-		# Check if the log already exists and append a number to the filename
+		# If you want to make a separate directory for each call on the same input
+		# You need to change checkFilename as well
+		self.dirname  = self.filename + "/"
 		if not os.path.exists(self.dirname):
 			os.makedirs(self.dirname)
+
+		# Check if the log already exists and append a number to the filename
 		self.filename = self.checkFilename(self.filename, "_log.txt")
 
 	# Multithread and wait for them to finish executing
@@ -185,8 +190,8 @@ class search():
 						row.extend(release)
 					else:
 						row.append(self.stripTags1(releaseNode))
-
-						self.writeRow(self.dirname + str(sId) + "/" + self.filename + '.csv', row)
+					
+					self.writeRow(self.dirname + str(sId) + "/" + self.filename + '.csv', row)
 
 					row = [sId]
 					header = 0
