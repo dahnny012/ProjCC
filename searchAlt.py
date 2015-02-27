@@ -1,7 +1,6 @@
 # This is a branch of the original search.py
 # This version creates a directory for the scrape
-# that contains the log/badID files
-# and subdirectories for each series ID
+# with a separate csv for each series ID
 # This is less visually helpful than the original output
 # but it should help us "index" the result when we need them later
 
@@ -30,7 +29,7 @@ import codecs
 import repairUnicode
 
 queueLock = threading.Lock()
-logLock = threading.Lock()
+logLock   = threading.Lock()
 errorLock = threading.Lock()
 
 extReg     = re.compile('\.[A-Za-z]+$')
@@ -54,8 +53,8 @@ class search():
 	def readFile(self, filename=None):
 		if filename == None:
 			filename = self.filename
-		with open(filename, 'r') as file:
-			self.idList = [line.rstrip('\n') for line in file]
+		with open(filename, 'r') as inFile:
+			self.idList = [line.rstrip('\n') for line in inFile]
 		print("File: %s" % filename)
 		self.filename = extReg.sub('', filename)
 
@@ -68,6 +67,10 @@ class search():
 
 		# Check if the log already exists and append a number to the filename
 		self.filename = self.checkFilename(self.filename, "_log.txt")
+
+		self.dirname = self.filename + "/"
+		if not os.path.exists(self.dirname):
+			os.makedirs(self.dirname)
 
 	# Multithread and wait for them to finish executing
 	def run(self):
@@ -102,12 +105,8 @@ class search():
 				releases = False
 
 			page = 1
-			curwd = self.dirname + str(sId) + "/"
-
-			if not os.path.exists(curwd):
-				os.makedirs(curwd)
-			self.clearFile(curwd + self.filename + ".csv")
-			self.writeRow(curwd + self.filename + ".csv", ["SERIES_ID", "SERIES_NAME", "VOLUME", "CHAPTER", "GROUP_NAME", "GROUP_ID"])
+			curFile = self.dirname + str(sId)
+			self.writeRow(curFile + ".csv", ["SERIES_ID", "SERIES_NAME", "VOLUME", "CHAPTER", "GROUP_NAME", "GROUP_ID"])
 			while releases:
 				releasesLink = self.seriesIdToReleases(sId, page)
 				releasesPage = self.getPage(releasesLink)
@@ -191,7 +190,7 @@ class search():
 					else:
 						row.append(self.stripTags1(releaseNode))
 					
-					self.writeRow(self.dirname + str(sId) + "/" + self.filename + '.csv', row)
+					self.writeRow(self.dirname + str(sId) + '.csv', row)
 
 					row = [sId]
 					header = 0
